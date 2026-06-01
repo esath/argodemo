@@ -1,0 +1,68 @@
+name: CI – Build and push container image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to commit the updated image tag
+      packages: write       # needed to push to ghcr.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Update the image tag in k8s/deployment.yaml so ArgoCD detects the change
+      - name: Update image tag in deployment manifest
+        id: update-tag
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          NEW_TAG="sha-${SHORT_SHA}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${NEW_TAG}"
+          sed -i "s|image: ghcr.io/esath/argodemo:.*|image: ${IMAGE}|g" k8s/deployment.yaml
+          echo "Updated image to ${IMAGE}"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit updated deployment manifest
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: update image tag to sha-${{ steps.update-tag.outputs.short_sha }}"
+          file_pattern: k8s/deployment.yaml
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions[bot]@users.noreply.github.com
