@@ -75,7 +75,7 @@ If your cluster cannot pull from `ghcr.io` anonymously, create an image pull sec
 oc create secret docker-registry ghcr-pull-secret \
   --docker-server=ghcr.io \
   --docker-username=<your-github-username> \
-  --docker-****** \
+  --docker-password=<your-github-token> \
   -n argodemo
 
 oc secrets link default ghcr-pull-secret --for=pull -n argodemo

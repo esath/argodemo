@@ -50,18 +50,19 @@ jobs:
 
       # Update the image tag in k8s/deployment.yaml so ArgoCD detects the change
       - name: Update image tag in deployment manifest
-        env:
-          SHORT_SHA: ${{ github.sha }}
+        id: update-tag
         run: |
-          NEW_TAG="sha-${SHORT_SHA::7}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          NEW_TAG="sha-${SHORT_SHA}"
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${NEW_TAG}"
           sed -i "s|image: ghcr.io/esath/argodemo:.*|image: ${IMAGE}|g" k8s/deployment.yaml
           echo "Updated image to ${IMAGE}"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Commit updated deployment manifest
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "ci: update image tag to sha-${{ github.sha }}"
+          commit_message: "ci: update image tag to sha-${{ steps.update-tag.outputs.short_sha }}"
           file_pattern: k8s/deployment.yaml
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
