@@ -10,11 +10,15 @@
 Git push  →  GitHub Actions (build & push image)  →  ArgoCD syncs  →  OpenShift rolls out
 ```
 
-1. A developer pushes to the `main` branch.
-2. The GitHub Actions workflow builds the nginx container image and pushes it to **GitHub Container Registry** (`ghcr.io`).
-3. The workflow also bumps the image tag inside `k8s/deployment.yaml` and commits it back.
-4. **ArgoCD** detects the new commit in `k8s/` and automatically syncs the manifests to the OCP cluster.
-5. OpenShift performs a rolling update – the new pod serves the updated page.
+1. A developer pushes to either `main` or `dev1` (changes under `app/`).
+2. GitHub Actions builds the nginx container image and pushes it to **GitHub Container Registry** (`ghcr.io`).
+3. The workflow updates the branch-specific deployment manifest and commits it back:
+  - `main` → `k8s/deployment.yaml` with image tag `sha-<short_sha>`
+  - `dev1` → `k8s-dev1/deployment.yaml` with image tag `dev1-sha-<short_sha>`
+4. ArgoCD syncs branch-specific manifests:
+  - `argodemo` app tracks `main` and deploys `k8s/` (production)
+  - `argodemo-dev1` app tracks `dev1` and deploys `k8s-dev1/` (preview)
+5. OpenShift rolls out each environment independently.
 
 ---
 
@@ -26,15 +30,19 @@ argodemo/
 │   ├── index.html          ← The demo web page (edit this to trigger a deploy)
 │   └── Dockerfile          ← nginx image that runs on port 8080 (OCP non-root)
 ├── k8s/
-│   ├── namespace.yaml      ← argodemo namespace
-│   ├── deployment.yaml     ← Deployment (image tag updated by CI)
+│   ├── deployment.yaml     ← Production Deployment (image tag updated by CI on main)
 │   ├── service.yaml        ← ClusterIP Service on port 8080
-│   └── route.yaml          ← OpenShift Route with TLS edge termination
+│   └── route.yaml          ← Production Route with TLS edge termination
+├── k8s-dev1/
+│   ├── deployment.yaml     ← Preview Deployment (image tag updated by CI on dev1)
+│   ├── service.yaml        ← Preview ClusterIP Service on port 8080
+│   └── route.yaml          ← Preview Route with TLS edge termination
 ├── argocd/
-│   └── application.yaml    ← ArgoCD Application pointing at k8s/
+│   ├── application.yaml    ← ArgoCD Application for production (main → k8s/)
+│   └── application-dev1.yaml ← ArgoCD Application for preview (dev1 → k8s-dev1/)
 └── .github/
-    └── workflows/
-        └── ci.yaml         ← GitHub Actions CI pipeline
+  └── workflows/
+    └── ci.yaml         ← GitHub Actions CI pipeline (main + dev1)
 ```
 
 ---
@@ -46,23 +54,31 @@ argodemo/
 | Tool | Version |
 |------|---------|
 | OpenShift cluster | 4.x |
-| ArgoCD | 2.x (installed in `argocd` namespace) |
+| ArgoCD | 2.x (installed in `openshift-operators` namespace) |
 | `oc` / `kubectl` | any recent |
 
-### 2 – Register the ArgoCD Application
+### 2 – Register the ArgoCD Applications
 
 ```bash
 oc apply -f argocd/application.yaml
+oc apply -f argocd/application-dev1.yaml
 ```
 
-ArgoCD will create the `argodemo` namespace and deploy all manifests in `k8s/` automatically.
+ArgoCD will create the namespaces and deploy both tracks automatically:
 
-### 3 – Update the Route hostname
+- `argodemo` from `main` / `k8s/`
+- `argodemo-dev1` from `dev1` / `k8s-dev1/`
 
-Edit `k8s/route.yaml` and replace the placeholder hostname:
+### 3 – Update the Route hostnames
+
+Edit both route manifests and replace the placeholder hostnames:
 
 ```yaml
+# Production
 host: argodemo.apps.<cluster-name>.<base-domain>
+
+# Preview
+host: argodemo-dev1.apps.<cluster-name>.<base-domain>
 ```
 
 Commit and push – ArgoCD will pick it up.
@@ -79,24 +95,37 @@ oc create secret docker-registry ghcr-pull-secret \
   -n argodemo
 
 oc secrets link default ghcr-pull-secret --for=pull -n argodemo
+
+oc create secret docker-registry ghcr-pull-secret \
+  --docker-server=ghcr.io \
+  --docker-username=<your-github-username> \
+  --docker-password=<your-github-token> \
+  -n argodemo-dev1
+
+oc secrets link default ghcr-pull-secret --for=pull -n argodemo-dev1
 ```
 
 ---
 
-## Triggering a demo deployment
+## Triggering deployments
 
-The fastest way to see a full CI/CD cycle:
+### Preview deployment (`dev1`)
 
-1. **Edit** `app/index.html` – change the version badge, heading, or any visible text.
-2. **Commit and push**:
+1. Edit `app/index.html`.
+2. Commit and push to `dev1`:
    ```bash
    git add app/index.html
-   git commit -m "demo: bump version to v1.0.1"
-   git push
+  git commit -m "demo: test preview update"
+  git push origin dev1
    ```
-3. Watch the **GitHub Actions** run build and push the image.
-4. Open the **ArgoCD UI** – the app will show *OutOfSync* briefly, then sync automatically.
-5. Reload the app URL – you will see the updated page.
+3. CI builds/pushes `ghcr.io/<owner>/argodemo:dev1-sha-<short_sha>` and updates `k8s-dev1/deployment.yaml`.
+4. ArgoCD app `argodemo-dev1` syncs to the preview route.
+
+### Production deployment (`main`)
+
+1. Merge tested changes to `main`.
+2. CI builds/pushes `ghcr.io/<owner>/argodemo:sha-<short_sha>` and updates `k8s/deployment.yaml`.
+3. ArgoCD app `argodemo` syncs to the production route.
 
 ---
 
@@ -105,7 +134,8 @@ The fastest way to see a full CI/CD cycle:
 | File | Change it to… |
 |------|--------------|
 | `app/index.html` | Update the visible page content (triggers image rebuild) |
-| `k8s/deployment.yaml` | Scale replicas, adjust CPU/memory limits, add env vars |
-| `k8s/route.yaml` | Change hostname or TLS policy |
-| `argocd/application.yaml` | Change sync policy, target namespace, or source branch |
-| `.github/workflows/ci.yaml` | Customise the CI pipeline (registry, extra steps, etc.) |
+| `k8s/deployment.yaml` | Tune production replicas/resources/probes |
+| `k8s-dev1/deployment.yaml` | Tune preview replicas/resources/probes |
+| `k8s/route.yaml` and `k8s-dev1/route.yaml` | Change production/preview hostnames or TLS policy |
+| `argocd/application.yaml` and `argocd/application-dev1.yaml` | Change sync policy, target namespace, or source branch |
+| `.github/workflows/ci.yaml` | Customize branch-specific image tagging and manifest updates |

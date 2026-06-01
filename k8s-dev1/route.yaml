@@ -1,0 +1,21 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: argodemo-dev1
+  namespace: argodemo-dev1
+  labels:
+    app: argodemo-dev1
+spec:
+  # Change this hostname to match your OCP cluster's wildcard domain,
+  # e.g. argodemo-dev1.apps.<cluster-name>.<base-domain>
+  host: argodemo-dev1.apps.example.com
+  to:
+    kind: Service
+    name: argodemo-dev1
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
