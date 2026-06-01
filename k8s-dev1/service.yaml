@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argodemo-dev1
+  namespace: argodemo-dev1
+  labels:
+    app: argodemo-dev1
+spec:
+  selector:
+    app: argodemo-dev1
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

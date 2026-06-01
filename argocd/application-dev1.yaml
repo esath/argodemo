@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argodemo
+  name: argodemo-dev1
   # Deploy the ArgoCD Application resource into the openshift-operators namespace
   namespace: openshift-operators
 spec:
@@ -10,19 +10,18 @@ spec:
   source:
     # Point this at your fork / clone of the repo
     repoURL: https://github.com/esath/argodemo.git
-    # Production tracks main
-    targetRevision: main
-    # ArgoCD watches the k8s/ directory for manifest changes
-    path: k8s
+    targetRevision: dev1
+    # ArgoCD watches the k8s-dev1/ directory for manifest changes
+    path: k8s-dev1
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: argodemo
+    namespace: argodemo-dev1
 
   syncPolicy:
     # Automatically sync when ArgoCD detects a diff
     automated:
-      prune: true       # remove resources deleted from Git
-      selfHeal: true    # revert manual changes made on the cluster
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

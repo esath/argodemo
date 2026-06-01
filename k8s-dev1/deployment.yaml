@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argodemo-dev1
+  namespace: argodemo-dev1
+  labels:
+    app: argodemo-dev1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argodemo-dev1
+  template:
+    metadata:
+      labels:
+        app: argodemo-dev1
+    spec:
+      containers:
+        - name: argodemo
+          # The CI workflow updates this image tag on every push to dev1
+          image: ghcr.io/esath/argodemo:dev1-sha-bootstrap
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
