@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argodemo-dev1
+  name: argodemo-dev
   # Deploy the ArgoCD Application resource into the openshift-operators namespace
   namespace: openshift-operators
 spec:
@@ -16,7 +16,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: argodemo-dev1
+    namespace: argodemo
 
   syncPolicy:
     # Automatically sync when ArgoCD detects a diff

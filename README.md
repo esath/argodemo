@@ -17,7 +17,7 @@ Git push  →  GitHub Actions (build & push image)  →  ArgoCD syncs  →  Open
   - `dev1` → `k8s-dev1/deployment.yaml` with image tag `dev1-sha-<short_sha>`
 4. ArgoCD syncs branch-specific manifests:
   - `argodemo` app tracks `main` and deploys `k8s/` (production)
-  - `argodemo-dev1` app tracks `dev1` and deploys `k8s-dev1/` (preview)
+  - `argodemo-dev` app tracks `dev1` and deploys `k8s-dev1/` (preview)
 5. OpenShift rolls out each environment independently.
 
 ---
@@ -64,10 +64,10 @@ oc apply -f argocd/application.yaml
 oc apply -f argocd/application-dev1.yaml
 ```
 
-ArgoCD will create the namespaces and deploy both tracks automatically:
+ArgoCD will deploy both tracks into the same namespace automatically:
 
 - `argodemo` from `main` / `k8s/`
-- `argodemo-dev1` from `dev1` / `k8s-dev1/`
+- `argodemo-dev` from `dev1` / `k8s-dev1/`
 
 ### 3 – Update the Route hostnames
 
@@ -78,7 +78,7 @@ Edit both route manifests and replace the placeholder hostnames:
 host: argodemo.apps.<cluster-name>.<base-domain>
 
 # Preview
-host: argodemo-dev1.apps.<cluster-name>.<base-domain>
+host: argodemo-dev.apps.<cluster-name>.<base-domain>
 ```
 
 Commit and push – ArgoCD will pick it up.
@@ -95,14 +95,6 @@ oc create secret docker-registry ghcr-pull-secret \
   -n argodemo
 
 oc secrets link default ghcr-pull-secret --for=pull -n argodemo
-
-oc create secret docker-registry ghcr-pull-secret \
-  --docker-server=ghcr.io \
-  --docker-username=<your-github-username> \
-  --docker-password=<your-github-token> \
-  -n argodemo-dev1
-
-oc secrets link default ghcr-pull-secret --for=pull -n argodemo-dev1
 ```
 
 ---
@@ -119,7 +111,7 @@ oc secrets link default ghcr-pull-secret --for=pull -n argodemo-dev1
   git push origin dev1
    ```
 3. CI builds/pushes `ghcr.io/<owner>/argodemo:dev1-sha-<short_sha>` and updates `k8s-dev1/deployment.yaml`.
-4. ArgoCD app `argodemo-dev1` syncs to the preview route.
+4. ArgoCD app `argodemo-dev` syncs to the preview route.
 
 ### Production deployment (`main`)
 

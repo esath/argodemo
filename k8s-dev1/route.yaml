@@ -1,17 +1,17 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: argodemo-dev1
-  namespace: argodemo-dev1
+  name: argodemo-dev
+  namespace: argodemo
   labels:
-    app: argodemo-dev1
+    app: argodemo-dev
 spec:
   # Change this hostname to match your OCP cluster's wildcard domain,
-  # e.g. argodemo-dev1.apps.<cluster-name>.<base-domain>
-  host: argodemo-dev1.apps.example.com
+  # e.g. argodemo-dev.apps.<cluster-name>.<base-domain>
+  host: argodemo-dev.ocp.lab.mintly.fi
   to:
     kind: Service
-    name: argodemo-dev1
+    name: argodemo-dev
     weight: 100
   port:
     targetPort: http
