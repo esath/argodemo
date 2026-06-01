@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argodemo
+  # Deploy the ArgoCD Application resource into the argocd namespace
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    # Point this at your fork / clone of the repo
+    repoURL: https://github.com/esath/argodemo.git
+    targetRevision: main
+    # ArgoCD watches the k8s/ directory for manifest changes
+    path: k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argodemo
+
+  syncPolicy:
+    # Automatically sync when ArgoCD detects a diff
+    automated:
+      prune: true       # remove resources deleted from Git
+      selfHeal: true    # revert manual changes made on the cluster
+    syncOptions:
+      - CreateNamespace=true
