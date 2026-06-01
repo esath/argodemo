@@ -18,7 +18,7 @@ spec:
       containers:
         - name: argodemo
           # The CI workflow updates this image tag on every push to main
-          image: ghcr.io/esath/argodemo:latest
+          image: ghcr.io/esath/argodemo:sha-f0878e8
           ports:
             - containerPort: 8080
           resources:
