@@ -1,5 +1,7 @@
 # argodemo
 
+## change 12.6.2026 08:10
+
 > **Simple CI/CD demo** – a plain HTML web page deployed to **OpenShift** via **ArgoCD** (GitOps).
 
 ---
