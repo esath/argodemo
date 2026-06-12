@@ -6,7 +6,7 @@ metadata:
   labels:
     app: argodemo-dev
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: argodemo-dev
