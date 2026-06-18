@@ -2,7 +2,6 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: argodemo-dev
-  namespace: argodemo
   labels:
     app: argodemo-dev
 spec:
