@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argodemo-dev
-  namespace: argodemo
   labels:
     app: argodemo-dev
 spec:
