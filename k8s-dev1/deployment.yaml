@@ -2,11 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argodemo-dev
-  namespace: argodemo
   labels:
     app: argodemo-dev
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: argodemo-dev
@@ -18,7 +17,7 @@ spec:
       containers:
         - name: argodemo
           # The CI workflow updates this image tag on every push to dev1
-          image: ghcr.io/esath/argodemo:dev1-sha-023b259
+          image: ghcr.io/esath/argodemo:dev1-latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
