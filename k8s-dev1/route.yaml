@@ -7,7 +7,7 @@ metadata:
 spec:
   # Change this hostname to match your OCP cluster's wildcard domain,
   # e.g. argodemo-dev.apps.<cluster-name>.<base-domain>
-  host: argodemo-dev.ocp.lab.mintly.fi
+  host: demo1-dev.ocp.lab.mintly.fi
   to:
     kind: Service
     name: argodemo-dev
