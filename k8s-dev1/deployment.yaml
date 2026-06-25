@@ -17,7 +17,7 @@ spec:
       containers:
         - name: argodemo
           # The CI workflow updates this image tag on every push to dev1
-          image: ghcr.io/esath/argodemo:dev1-sha-023b259
+          image: ghcr.io/esath/argodemo:dev1-latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
